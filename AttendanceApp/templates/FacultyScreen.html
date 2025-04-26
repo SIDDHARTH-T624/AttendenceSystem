@@ -1,0 +1,35 @@
+{% load static %}
+<html>
+<head>
+<title>Advanced Attendance System</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="{% static 'style.css' %}" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="wrapper">
+	<div id="header">
+		<div id="logo">
+			<center><font size="4" color="yellow">Advanced Attendance System</font></center>
+		</div>
+		<div id="slogan">
+			
+		</div>
+	</div>
+	<div id="menu">
+
+	
+		<ul><center>
+		<li><a href="{% url 'MarkAttendance' %}">Mark Attendance</a></li>
+		<li><a href="{% url 'ViewAttendance' %}">View Attendance</a></li>
+ 	  <li><a href="{% url 'index' %}">Logout</a></li>
+   </ul>
+        
+        </div>
+        <br/>
+        <div class="hbg"><img src="{% static 'images/investor.jpg' %}" width="980" height="200" alt="" /></div>
+
+		<font size="3" color="red"><center>{{ data|safe }}</center></font>
+
+       <br/><br/><br/><br/>
+  </body>
+</html>

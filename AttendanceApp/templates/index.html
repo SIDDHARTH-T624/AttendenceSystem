@@ -1,0 +1,38 @@
+{% load static %}
+<html>
+<head>
+<title>Advanced Attendance System</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="{% static 'style.css' %}" rel="stylesheet" type="text/css" media="screen" />
+</head>
+<body>
+<div id="wrapper">
+	<div id="header">
+		<div id="logo">
+			<center><font size="4" color="yellow">Advanced Attendance System</font></center>
+		</div>
+		<div id="slogan">
+			
+		</div>
+	</div>
+	<div id="menu">
+
+	
+		<ul><center>
+      <li><a href="{% url 'index' %}">Home</a></li>
+	   <li><a href="{% url 'AdminLogin' %}">Admin Login</a></li>
+      <li><a href="{% url 'FacultyLogin' %}">Faculty Login</a></li>
+	  <li><a href="{% url 'StudentLogin' %}">Student Login</a></li>
+   </ul>
+        </div>
+		<br/>
+        <div class="hbg"><img src="{% static 'images/investor.jpg' %}" width="980" height="200" alt="" /></div>
+
+		{{ data }}
+
+       <p align="justify"><font size="3" style="font-family: Comic Sans MS" color="black"><center>Advanced Attendance System
+</p>
+ 
+ 
+  </body>
+</html>

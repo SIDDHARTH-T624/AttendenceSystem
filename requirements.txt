@@ -1,0 +1,9 @@
+pip install numpy==1.21.6
+pip install opencv-python==4.1.1.26
+pip install opencv-contrib-python==4.3.0.36
+pip install Pillow==9.5.0
+pip install pypng==0.0.21
+pip install PyQRCode==1.2.1
+pip install PyMySQL==0.9.3
+pip install Django==2.1.7
+pip install PyQRCode==1.2.1

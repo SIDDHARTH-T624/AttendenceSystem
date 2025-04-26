@@ -1,0 +1,81 @@
+{% load static %}
+<html>
+<head>
+<title>Advanced Attendance System</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="{% static 'style.css' %}" rel="stylesheet" type="text/css" />
+<script language="javascript" type="text/javascript" src="{% static 'datetimepicker.js' %}">
+</script>
+<script language="javascript">
+	function validate(formObj)
+	{
+	if(formObj.t2.value.length==0)
+	{
+	alert("Please Choose From Date");
+	formObj.t2.focus();
+	return false;
+	}
+	if(formObj.t3.value.length==0)
+	{
+	alert("Please Choose To Date");
+	formObj.t3.focus();
+	return false;
+	}
+	formObj.actionUpdateData.value="update";
+	return true;
+	}
+	</script>
+	 <script language="javascript" type="text/javascript" src="datetimepicker.js">
+</script>
+</head>
+<body>
+<div id="wrapper">
+	<div id="header">
+		<div id="logo">
+			<center><font size="4" color="yellow">Advanced Attendance System</font></center>
+		</div>
+		<div id="slogan">
+			
+		</div>
+	</div>
+	<div id="menu">
+
+	
+		<ul><center>
+		<li><a href="{% url 'MarkAttendance' %}">Mark Attendance</a></li>
+		<li><a href="{% url 'ViewAttendance' %}">View Attendance</a></li>
+ 	  <li><a href="{% url 'index' %}">Logout</a></li>
+   </ul>
+        </div>
+        <br/>
+        <div class="hbg"><img src="{% static 'images/investor.jpg' %}" width="980" height="200" alt="" /></div>
+      				<center>
+<form name="f1" method="post" action={% url 'ViewAttendanceAction' %} onsubmit="return validate(this);">
+{% csrf_token %}<br/>
+   <h2><b>View Student Attendance Screen</b></h2>
+   
+	<font size="" color="red"><center>{{ data }}</center></font>
+						
+						<table align="center" width="30%" >
+			{{ data1|safe }}
+         
+		  <tr><td><font size="" color="black">From&nbsp;Date</b></td>
+<td>
+		  <input name="t2" type="Text" id="demo" maxlength="25" size="20" class="c2" ><a href="javascript:NewCal('demo','ddmmmyyyy',false,24)"><img src="{% static 'cal.gif' %}" width="16" height="16" border="0" alt="Pick a date"></a>
+</td></tr>
+
+<tr><td><font size="" color="black">To&nbsp;Date</b></td>
+<td>
+		  <input name="t3" type="Text" id="demo1" maxlength="25" size="20" class="c2" ><a href="javascript:NewCal('demo1','ddmmmyyyy',false,24)"><img src="{% static 'cal.gif' %}" width="16" height="16" border="0" alt="Pick a date"></a>
+</td></tr>
+
+			<tr><td></td><td><input type="submit" value="Get Attendance"></td>
+			</table>
+			<br/><br/><br/><br/>
+				</div>	
+					
+				</div>
+				
+					
+	</body>
+</html>

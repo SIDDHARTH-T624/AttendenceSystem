@@ -1,0 +1,28 @@
+create database std_attendance;
+use std_attendance;
+
+create table mark_attendance(studentID varchar(30),
+attended_date date);
+
+create table addstudent(studentID varchar(30),
+studentName varchar(40),
+gender varchar(20),
+phoneNo varchar(12),
+email varchar(40),
+address varchar(60),
+course_name varchar(40),
+course_year varchar(10),
+password varchar(40));
+
+create table faculty(faculty_name varchar(40),
+qualification varchar(40),
+teaching_subject varchar(40),
+phone varchar(40),
+email varchar(40),
+address varchar(40),
+username varchar(40),
+password varchar(40));
+
+
+
+
