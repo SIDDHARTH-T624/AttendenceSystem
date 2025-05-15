@@ -9,7 +9,6 @@ from django.shortcuts import render
 from django.template import RequestContext
 from django.contrib import messages
 from django.http import HttpResponse
-global username
 from PIL import Image
 import face_recognition
 import time
@@ -44,7 +43,7 @@ def AddFacultyAction(request):
         user = request.POST.get('t7', False)
         password = request.POST.get('t8', False)
         output = "none"
-        con = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance',charset='utf8')
+        con = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance1',charset='utf8')
         with con:
             cur = con.cursor()
             cur.execute("select username FROM faculty")
@@ -54,7 +53,7 @@ def AddFacultyAction(request):
                     output = user+" username already exists"
                     break
         if output == 'none':
-            db_connection = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance',charset='utf8')
+            db_connection = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance1',charset='utf8')
             db_cursor = db_connection.cursor()
             student_sql_query = "INSERT INTO faculty VALUES('"+fname+"','"+qualification+"','"+teaching+"','"+phone+"','"+email+"','"+address+"','"+user+"','"+password+"')"
             db_cursor.execute(student_sql_query)
@@ -73,14 +72,14 @@ def ViewStudentAttendanceAction(request):
         to_date = request.POST.get('t3', False)
         from_dd = str(datetime.datetime.strptime(from_date, "%d-%b-%Y").strftime("'%Y-%m-%d'"))
         to_dd = str(datetime.datetime.strptime(to_date, "%d-%b-%Y").strftime("'%Y-%m-%d'"))
-        columns = ['Student ID', 'Presence Date']
+        columns = ['Student ID', 'Presence Date','']
         output = '<table border=1 align=center width=100%>'
         font = '<font size="" color="black">'
         output += "<tr>"
         for i in range(len(columns)):
             output += "<th>"+font+columns[i]+"</th>"            
         output += "</tr>"
-        con = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance',charset='utf8')
+        con = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance1',charset='utf8')
         with con:
             cur = con.cursor()
             cur.execute("select * from mark_attendance where studentID='"+username+"' and attended_date between "+from_dd+" and "+to_dd)
@@ -97,86 +96,206 @@ def ViewStudentAttendance(request):
         return render(request, 'ViewStudentAttendance.html', {})
 
 def ViewAttendanceAction(request):
+    
     if request.method == 'POST':
-        stdid = request.POST.get('t1', False)
         from_date = request.POST.get('t2', False)
         to_date = request.POST.get('t3', False)
-        from_dd = str(datetime.datetime.strptime(from_date, "%d-%b-%Y").strftime("'%Y-%m-%d'"))
-        to_dd = str(datetime.datetime.strptime(to_date, "%d-%b-%Y").strftime("'%Y-%m-%d'"))
-        columns = ['Student ID', 'Presence Date']
-        output = '<table border=1 align=center width=100%>'
+
+        course = request.POST.get('course', False)
+        year = request.POST.get('year', False)
+        semester = request.POST.get('semester', False)
+
+
+
+        # Parse to datetime objects (for calculation)
+        from_date_obj = datetime.datetime.strptime(from_date, "%d-%b-%Y")
+        to_date_obj = datetime.datetime.strptime(to_date, "%d-%b-%Y")
+
+        # Format for SQL queries
+        from_dd = from_date_obj.strftime("%Y-%m-%d")
+        to_dd = to_date_obj.strftime("%Y-%m-%d")
+
+        # Calculate total days (inclusive)
+        total_days = (to_date_obj - from_date_obj).days + 1       
+
+        columns = ['Student ID', 'Days Present', 'Total Working Days', 'Attendance %']
+        output = '<table border=1 align=center width=60%>'
         font = '<font size="" color="black">'
         output += "<tr>"
-        for i in range(len(columns)):
-            output += "<th>"+font+columns[i]+"</th>"            
+        for col in columns:
+            output += "<th>" + font + col + "</th>"
         output += "</tr>"
-        con = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance',charset='utf8')
+
+        con = pymysql.connect(host='127.0.0.1', port=3306, user='root', password='root',
+                              database='std_attendance1', charset='utf8')
         with con:
             cur = con.cursor()
-            cur.execute("select * from mark_attendance where studentID='"+stdid+"' and attended_date between "+from_dd+" and "+to_dd)
-            rows = cur.fetchall()
-            for row in rows:
+
+           
+
+            # Get students of selected batch using parameterized query
+            cur.execute("""
+                SELECT studentID FROM addstudent 
+                WHERE course_name=%s AND course_year=%s AND semester=%s
+            """, (course, year, semester))
+            students = cur.fetchall()
+
+            for student in students:
+                sid = student[0]
+                # Count present days using parameterized query
+                cur.execute("""
+                    SELECT COUNT(*) FROM mark_attendance 
+                    WHERE studentID=%s AND attended_date BETWEEN %s AND %s
+                """, (sid, from_dd, to_dd))
+                present_days = cur.fetchone()[0]
+
+                # Avoid division by zero
+                if total_days > 0:
+                    percentage = round((present_days / total_days) * 100, 2)
+                else:
+                    percentage = 0
+
                 output += "<tr>"
-                output += "<td>"+font+str(row[0])+"</td>"
-                output += "<td>"+font+str(row[1])+"</td></tr>"
-        context= {'data': output+"</table><br/><br/><br/><br/>"}
+                output += f"<td>{font}{sid}</td>"
+                output += f"<td>{font}{present_days}</td>"
+                output += f"<td>{font}{total_days}</td>"
+                output += f"<td>{font}{percentage}%</td>"
+                output += "</tr>"
+
+        context = {'data': output + "</table><br/><br/><br/><br/>"}
         return render(request, 'FacultyScreen.html', context)
 
 def ViewAttendance(request):
+    
     if request.method == 'GET':
         font = '<font size="" color="black">'
-        output = '<tr><td>'+font+'Choose&nbsp;Student&nbsp;ID</td><td><select name="t1">'
-        con = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance',charset='utf8')
-        with con:
-            cur = con.cursor()
-            cur.execute("select studentID FROM addstudent")
-            rows = cur.fetchall()
-            for row in rows:
-                output += '<option value="'+row[0]+'">'+row[0]+'</option>'
-        output += "</select></td></tr>"
-        context= {'data1': output}
+        output = ''
+
+        # Course dropdown
+        output += '<tr><td>' + font + 'Course</td><td><select name="course">'
+        course_list = ['Bca', 'Bsc', 'B.tech', 'M.tech', 'Msc', 'Mca', 'Mba']
+        for course in course_list:
+            output += f'<option value="{course}">{course}</option>'
+        output += '</select></td></tr>'
+
+        # Year dropdown
+        output += '<tr><td>' + font + 'Year</td><td><select name="year">'
+        year_list = ['I', 'II', 'III', 'IV']
+        for year in year_list:
+            output += f'<option value="{year}">{year}</option>'
+        output += '</select></td></tr>'
+
+        # Semester dropdown
+        output += '<tr><td>' + font + ' Semester</td><td><select name="semester">'
+        sem_list = ['I', 'II']
+        for sem in sem_list:
+            output += f'<option value="{sem}">{sem}</option>'
+        output += '</select></td></tr>'
+
+        context = {'data1': output}
         return render(request, 'ViewAttendance.html', context)
+
 
 def ViewAdminAttendanceAction(request):
     if request.method == 'POST':
-        stdid = request.POST.get('t1', False)
         from_date = request.POST.get('t2', False)
         to_date = request.POST.get('t3', False)
-        from_dd = str(datetime.datetime.strptime(from_date, "%d-%b-%Y").strftime("'%Y-%m-%d'"))
-        to_dd = str(datetime.datetime.strptime(to_date, "%d-%b-%Y").strftime("'%Y-%m-%d'"))
-        columns = ['Student ID', 'Presence Date']
-        output = '<table border=1 align=center width=100%>'
+
+        course = request.POST.get('course', False)
+        year = request.POST.get('year', False)
+        semester = request.POST.get('semester', False)
+
+
+
+        # Parse to datetime objects (for calculation)
+        from_date_obj = datetime.datetime.strptime(from_date, "%d-%b-%Y")
+        to_date_obj = datetime.datetime.strptime(to_date, "%d-%b-%Y")
+
+        # Format for SQL queries
+        from_dd = from_date_obj.strftime("%Y-%m-%d")
+        to_dd = to_date_obj.strftime("%Y-%m-%d")
+
+        # Calculate total days (inclusive)
+        total_days = (to_date_obj - from_date_obj).days + 1       
+
+        columns = ['Student ID', 'Days Present', 'Total Working Days', 'Attendance %']
+        output = '<table border=1 align=center width=60%>'
         font = '<font size="" color="black">'
         output += "<tr>"
-        for i in range(len(columns)):
-            output += "<th>"+font+columns[i]+"</th>"            
+        for col in columns:
+            output += "<th>" + font + col + "</th>"
         output += "</tr>"
-        con = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance',charset='utf8')
+
+        con = pymysql.connect(host='127.0.0.1', port=3306, user='root', password='root',
+                              database='std_attendance1', charset='utf8')
         with con:
             cur = con.cursor()
-            cur.execute("select * from mark_attendance where studentID='"+stdid+"' and attended_date between "+from_dd+" and "+to_dd)
-            rows = cur.fetchall()
-            for row in rows:
+
+           
+
+            # Get students of selected batch using parameterized query
+            cur.execute("""
+                SELECT studentID FROM addstudent 
+                WHERE course_name=%s AND course_year=%s AND semester=%s
+            """, (course, year, semester))
+            students = cur.fetchall()
+
+            for student in students:
+                sid = student[0]
+                # Count present days using parameterized query
+                cur.execute("""
+                    SELECT COUNT(*) FROM mark_attendance 
+                    WHERE studentID=%s AND attended_date BETWEEN %s AND %s
+                """, (sid, from_dd, to_dd))
+                present_days = cur.fetchone()[0]
+
+                # Avoid division by zero
+                if total_days > 0:
+                    percentage = round((present_days / total_days) * 100, 2)
+                else:
+                    percentage = 0
+
                 output += "<tr>"
-                output += "<td>"+font+str(row[0])+"</td>"
-                output += "<td>"+font+str(row[1])+"</td></tr>"
-        context= {'data': output+"</table><br/><br/><br/><br/>"}
+                output += f"<td>{font}{sid}</td>"
+                output += f"<td>{font}{present_days}</td>"
+                output += f"<td>{font}{total_days}</td>"
+                output += f"<td>{font}{percentage}%</td>"
+                output += "</tr>"
+
+        context = {'data': output + "</table><br/><br/><br/><br/>"}
         return render(request, 'AdminScreen.html', context)
+
+
 
 def ViewAdminAttendance(request):
     if request.method == 'GET':
         font = '<font size="" color="black">'
-        output = '<tr><td>'+font+'Choose&nbsp;Student&nbsp;ID</td><td><select name="t1">'
-        con = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance',charset='utf8')
-        with con:
-            cur = con.cursor()
-            cur.execute("select studentID FROM addstudent")
-            rows = cur.fetchall()
-            for row in rows:
-                output += '<option value="'+row[0]+'">'+row[0]+'</option>'
-        output += "</select></td></tr>"
-        context= {'data1': output}
+        output = ''
+
+        # Course dropdown
+        output += '<tr><td>' + font + 'Course</td><td><select name="course">'
+        course_list = ['Bca', 'Bsc', 'B.tech', 'M.tech', 'Msc', 'Mca', 'Mba']
+        for course in course_list:
+            output += f'<option value="{course}">{course}</option>'
+        output += '</select></td></tr>'
+
+        # Year dropdown
+        output += '<tr><td>' + font + 'Year</td><td><select name="year">'
+        year_list = ['I', 'II', 'III', 'IV']
+        for year in year_list:
+            output += f'<option value="{year}">{year}</option>'
+        output += '</select></td></tr>'
+
+        # Semester dropdown
+        output += '<tr><td>' + font + ' Semester</td><td><select name="semester">'
+        sem_list = ['I', 'II']
+        for sem in sem_list:
+            output += f'<option value="{sem}">{sem}</option>'
+        output += '</select></td></tr>'
+
+        context = {'data1': output}
         return render(request, 'ViewAdminAttendance.html', context)
+
 
 def FacultyLoginAction(request):
     if request.method == 'POST':
@@ -185,7 +304,7 @@ def FacultyLoginAction(request):
         password = request.POST.get('t2', False)
         index = 0
         emp_name = None
-        con = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance',charset='utf8')
+        con = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance1',charset='utf8')
         with con:
             cur = con.cursor()
             cur.execute("select username, password FROM faculty")
@@ -254,7 +373,7 @@ def StudentLoginAction(request):
         password = request.POST.get('t2', False)
         index = 0
         emp_name = None
-        con = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance',charset='utf8')
+        con = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance1',charset='utf8')
         with con:
             cur = con.cursor()
             cur.execute("select studentID, password, studentName FROM addstudent")
@@ -315,9 +434,10 @@ def AddStudentAction(request):
         address = request.POST.get('t6', False)
         course = request.POST.get('t7', False)
         year = request.POST.get('t8', False)
+        semester = request.POST.get('t9',False)
         password = request.POST.get('t9', False)
         output = "none"
-        con = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance',charset='utf8')
+        con = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance1',charset='utf8')
         with con:
             cur = con.cursor()
             cur.execute("select studentID FROM addstudent")
@@ -327,9 +447,9 @@ def AddStudentAction(request):
                     output = std_id+" student id already exists"
                     break
         if output == 'none':
-            db_connection = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance',charset='utf8')
+            db_connection = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance1',charset='utf8')
             db_cursor = db_connection.cursor()
-            student_sql_query = "INSERT INTO addstudent VALUES('"+std_id+"','"+name+"','"+gender+"','"+phone+"','"+email+"','"+address+"','"+course+"','"+year+"','"+password+"')"
+            student_sql_query = "INSERT INTO addstudent VALUES('"+std_id+"','"+name+"','"+gender+"','"+phone+"','"+email+"','"+address+"','"+course+"','"+year+"','"+semester+"','"+password+"')"
             db_cursor.execute(student_sql_query)
             db_connection.commit()
             output = "New student details successfully added"
@@ -384,7 +504,7 @@ def saveUser(request):
 
 def isStdExists(code):
     email_id = ""
-    connect = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance',charset='utf8')
+    connect = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance1',charset='utf8')
     with connect:
         curs = connect.cursor()
         curs.execute("select email FROM addstudent where studentID='"+code+"'")
@@ -397,7 +517,7 @@ def isStdExists(code):
 def isAttendanceTaken(code):
     flag = False
     current_date = str(time.strftime('%Y-%m-%d'))
-    connect = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance',charset='utf8')
+    connect = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance1',charset='utf8')
     with connect:
         curs = connect.cursor()
         curs.execute("select * FROM mark_attendance where studentID='"+code+"' and attended_date='"+current_date+"'")
@@ -422,7 +542,7 @@ def takeAttendance(std_code):
     attended_date = isAttendanceTaken(std_code)
     email_id = isStdExists(std_code)
     if attended_date == False and len(email_id) > 0:
-        connect = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance',charset='utf8')
+        connect = pymysql.connect(host='127.0.0.1',port = 3306,user = 'root', password = 'root', database = 'std_attendance1',charset='utf8')
         curs = connect.cursor()
         curs.execute("INSERT INTO mark_attendance(studentID, attended_date) VALUES('"+std_code+"','"+current_date+"')")
         connect.commit()
